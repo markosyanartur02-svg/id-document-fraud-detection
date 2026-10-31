@@ -1,0 +1,15 @@
+# Dataset (15 GB images + competition labels, download from the competition page)
+train/
+data/
+
+# Model outputs
+results/
+*.pt
+
+# Environment and IDE
+.venv/
+.venv-torch/
+.idea/
+.ipynb_checkpoints/
+__pycache__/
+.DS_Store
