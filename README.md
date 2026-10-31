@@ -1,6 +1,6 @@
 # ID Document Fraud Detection
 
-A deep learning model that flags fraudulent identity documents (driver's licenses and national ID cards), built for the **FreUID Challenge 2026 (IJCAI-ECAI)**.
+A deep learning model that flags fraudulent identity documents (driver's licenses and national ID cards), built for the **FreUID Challenge 2026**, organized by Microblink as part of IJCAI-ECAI 2026.
 
 The model is validated on a **document type it never saw during training**. A fraud detector in production keeps meeting new card designs, so generalising to an unseen template matters more than scoring well on a random split.
 
@@ -41,7 +41,7 @@ These scores are close to chance (0.5), so file metadata carries no usable fraud
 
 1. **Leave-one-document-type-out validation.** Every 1- and 2-type hold-out is scored by how close it gets to a 20% validation size and to the overall fraud rate. `GUINEA/DL` wins, giving 55,963 training and 13,389 validation images with no document type shared between them.
 2. **Model.** EfficientNet-B0 pretrained on ImageNet, with a single-logit head, fine-tuned end to end.
-3. **Training.** `BCEWithLogitsLoss`, Adam (lr 1e-4), batch size 64, mixed precision, 5 epochs on a Kaggle Tesla T4. Images are resized to 224×224 with light colour jitter.
+3. **Training.** `BCEWithLogitsLoss`, Adam (lr 1e-4), batch size 64, mixed precision, 5 epochs on a single NVIDIA T4 GPU. Images are resized to 224×224 with light colour jitter.
 4. **Evaluation.** Accuracy, precision, recall, F1, ROC-AUC and PR-AUC. Recall is the priority metric, since missed fraud is the costly error.
 
 ## Next steps
@@ -62,7 +62,7 @@ These scores are close to chance (0.5), so file metadata carries no usable fraud
 
 ## Run it
 
-The notebook runs on Kaggle with a GPU. Attach the FreUID 2026 dataset and update `base` in the first cell if your input path differs.
+The notebook needs a GPU. Download the FreUID Challenge 2026 data and set `base` in the first cell to the folder that holds `train_labels.csv` and the `train/train/` images.
 
 The shortcut check runs locally in a few seconds, with the labels at `data/train_labels.csv` and the images in `train/`:
 
