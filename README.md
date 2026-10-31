@@ -14,12 +14,14 @@ Validation on the held-out `GUINEA/DL` documents (13,389 images), best epoch:
 |---|---|---|---|---|
 | **0.999** | **0.998** | **0.999** | 0.692 | 0.821 |
 
-- **Near-perfect ranking on an unseen document type.** Almost every fraudulent card scores higher than almost every genuine one.
-- **The default 0.5 threshold is the bottleneck.** On an unfamiliar design the scores shift upward, so about 30% of genuine documents get flagged. Recalibrating the threshold is the next step (see below).
+- **Near-perfect ranking on an unseen document type.** Almost every fraudulent card scores higher than almost every genuine one. I don't take this at face value; see the next section.
+- **The default 0.5 threshold is the bottleneck.** On an unfamiliar design the scores shift upward, so about 30% of genuine documents get flagged. The ranking is right, but the cutoff isn't calibrated for a design the model hasn't seen.
 
-### Shortcut check
+### Is 0.999 too good to be true? Almost certainly.
 
-An AUC this high on an unseen document type raises a fair question: is the model picking up an artefact, such as fraudulent images being saved at a different size or JPEG quality, instead of the forgery itself? [`shortcut_check.py`](shortcut_check.py) trains a gradient-boosted model on file metadata only (image size, file size, bytes per pixel, JPEG quantisation tables) and tests it on each held-out document type:
+Real-world document fraud detection doesn't look like this, and I don't expect the number to hold up outside this setup. The challenge organizers say as much: the FreUID data is built to expose weaknesses that saturated scores on purely digital data tend to hide. So the useful question isn't whether the score is inflated, but where the inflation comes from.
+
+**Ruled out: file-level shortcuts.** Maybe the forged images were simply saved differently, at another size or JPEG quality. [`shortcut_check.py`](shortcut_check.py) trains a gradient-boosted model on file metadata only (image size, file size, bytes per pixel, JPEG quantisation tables) and tests it on each held-out document type:
 
 | Held-out type | Metadata-only ROC-AUC |
 |---|---|
@@ -29,7 +31,15 @@ An AUC this high on an unseen document type raises a fair question: is the model
 | MAURITIUS/ID | 0.357 |
 | MOZAMBIQUE/DL | 0.484 |
 
-These scores are close to chance (0.5), so file metadata carries no usable fraud signal. The CNN's 0.999 on GUINEA/DL has to come from the image content.
+These scores are close to chance (0.5), so the signal isn't in the file details. It's somewhere in the pixels, which still leaves room for the wrong kind of signal.
+
+**Still on my list:**
+
+- **Forgery-tool fingerprints.** The fakes across all five document types were most likely made with the same editing pipeline. Holding out a card design doesn't hold out the tools, so the model may be recognising the traces they leave (blending edges, resampling noise, generator texture) instead of anything a new attacker would also leave behind.
+- **Clean, digital-only images.** Only 20 of the 69,352 training images are not digital originals. Print-and-capture forgeries, which the challenge specifically targets, are printed and re-photographed, which wipes out exactly the fragile pixel traces a model like this can latch onto.
+- **One possibly easy fold.** Only one document type is held out. Guinean licenses have the same image size and format as several training types, so this may be the easiest of the five splits.
+
+I ran out of time to test these during the challenge; each one has a straightforward experiment, listed below.
 
 ## Data
 
@@ -46,9 +56,12 @@ These scores are close to chance (0.5), so file metadata carries no usable fraud
 
 ## Next steps
 
-- [ ] Choose the decision threshold on the training types, or calibrate scores, instead of using a fixed 0.5
-- [x] Sanity-check for shortcuts: test whether image size or file size alone predicts the label (it doesn't, see above)
-- [ ] Full 5-fold leave-one-type-out cross-validation, reporting mean ± std
+- [x] Sanity-check for file-level shortcuts: test whether image size or file size alone predicts the label (it doesn't, see above)
+- [ ] Robustness test: re-save, blur and resize the validation images before scoring. If performance collapses, the model relies on fragile pixel traces rather than the document itself
+- [ ] Grad-CAM heatmaps to see where the model looks: the photo, the text fields, or the background
+- [ ] Evaluate on print-and-capture forgeries, the hard case the challenge was built around
+- [ ] Full 5-fold leave-one-type-out cross-validation, reporting mean ± std instead of a single fold
+- [ ] Choose the decision threshold without validation labels, or calibrate scores, instead of using a fixed 0.5
 - [ ] Keep the best checkpoint, add early stopping and a learning-rate schedule
 - [ ] Train at higher resolution to keep the fine detail where tampering shows up
 
